@@ -9,3 +9,5 @@ edition = "2018"
 
 [dependencies]
 nix = "0.13"
+structopt = "0.2"
+yansi = "0.5"
