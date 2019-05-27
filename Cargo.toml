@@ -1,5 +1,6 @@
 [package]
 name = "rpi-gpio"
+description = "library and CLI application to inspect RPi GPIO"
 version = "0.1.0"
 authors = [
 	"Fusion Engineering <info@fusion.engineering>",
