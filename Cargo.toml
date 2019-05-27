@@ -6,6 +6,8 @@ authors = [
 	"Maarten de Vries <maarten@de-vri.es>",
 ]
 edition = "2018"
+license = "BSD-2-Clause"
+readme  = "README.md"
 
 [dependencies]
 nix = "0.13"
