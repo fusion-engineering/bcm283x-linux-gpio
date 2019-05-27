@@ -5,6 +5,8 @@ use structopt::StructOpt;
 
 #[derive(StructOpt)]
 struct Options {
+	#[structopt(long = "verbose", short = "v")]
+	/// Show more information.
 	verbose: bool,
 }
 
@@ -26,34 +28,56 @@ fn print_pin(index: usize, pin: &PinInfo, verbose: bool) {
 		false => Paint::red("LOW"),
 	};
 
-	print!("{:02}: {:4} ({:?})", index, level, Paint::cyan(pin.mode));
+	let mode = format!("{:?}", pin.mode);
+	print!("pin={:<2}   level={:4}   mode={:6}", Paint::yellow(index), level, Paint::cyan(mode));
 
 	if verbose {
 		let event = match pin.level {
 			true  => Paint::green("yes"),
 			false => Paint::red("no "),
 		};
-		print!(" (event: {}", event);
+		print!("   event={}   detect=", event);
 
+		let mut detect_any = false;
 		if pin.detect_rise {
-			print!(", detect_rise");
+			if std::mem::replace(&mut detect_any, true) {
+				print!(",");
+			}
+			print!("{}", Paint::cyan("rise"));
 		}
 		if pin.detect_fall {
-			print!(", detect_fall");
+			if std::mem::replace(&mut detect_any, true) {
+				print!(",");
+			}
+			print!("{}", Paint::cyan("fall"));
 		}
 		if pin.detect_high {
-			print!(", detect_high");
+			if std::mem::replace(&mut detect_any, true) {
+				print!(",");
+			}
+			print!("{}", Paint::cyan("high"));
 		}
 		if pin.detect_low {
-			print!(", detect_low");
+			if std::mem::replace(&mut detect_any, true) {
+				print!(",");
+			}
+			print!("{}", Paint::cyan("low"));
 		}
 		if pin.detect_async_rise {
-			print!(", detect_async_rise");
+			if std::mem::replace(&mut detect_any, true) {
+				print!(",");
+			}
+			print!("{}", Paint::cyan("async_rise"));
 		}
 		if pin.detect_async_fall {
-			print!(", detect_async_fall");
+			if std::mem::replace(&mut detect_any, true) {
+				print!(",");
+			}
+			print!("{}", Paint::cyan("async_fall"));
 		}
-		print!(")");
+		if !detect_any {
+			print!("{}", Paint::magenta("nothing"));
+		}
 	}
 
 	println!();
