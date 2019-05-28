@@ -170,7 +170,10 @@ impl RpioState {
 		let pins_per_register = pins_per_register as u32;
 		let bits_per_pin      = bits_per_pin      as u32;
 
-		let register_index = base as u32 + index / pins_per_register;
+		// Register has a relative byte address,
+		// but registers are 32 bit.
+		let base           = base as u32 / 4;
+		let register_index = base + index / pins_per_register;
 		let index          = index % pins_per_register;
 
 		let value = self.data[register_index as usize] >> (bits_per_pin * index);
