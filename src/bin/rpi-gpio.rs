@@ -55,7 +55,16 @@ struct Options {
 fn main() {
 	let options = Options::from_args();
 
-	let mut rpio = Rpio::new().unwrap();
+	let mut rpio = match Rpio::new() {
+		Ok(x) => x,
+		Err(error) => {
+			eprintln!("Failed to map IO memory from /dev/mem: {}", error);
+			eprintln!();
+			eprintln!("Make sure to run the application as root and that your kernel was configured properly.");
+			eprintln!("You may need to disable CONFIG_IO_STRICT_DEVMEM and add iomem=relaxed to the kernel command line.");
+			std::process::exit(1);
+		}
+	};
 
 	if !options.pins.is_empty() {
 		let (gpio, pud) = config_from_commands(&options.pins);
