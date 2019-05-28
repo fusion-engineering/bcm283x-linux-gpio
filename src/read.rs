@@ -1,4 +1,4 @@
-use crate::{PinMode, Reg};
+use crate::{PinMode, Register};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PinInfo {
@@ -14,11 +14,11 @@ pub struct PinInfo {
 }
 
 #[derive(Clone)]
-pub struct RpioState {
+pub struct GpioState {
 	data: [u32; 0x100],
 }
 
-impl RpioState {
+impl GpioState {
 	pub fn from_data(data: [u32; 0x100]) -> Self {
 		Self { data }
 	}
@@ -31,43 +31,43 @@ impl RpioState {
 		self.data
 	}
 
-	pub fn pin_mode(&self, index: u32) -> PinMode {
-		PinMode::try_from_bits(self.read_pin_bits(index, Reg::GPFSEL0, 10, 3) as u8).unwrap()
+	pub fn pin_mode(&self, index: usize) -> PinMode {
+		PinMode::try_from_bits(self.read_pin_bits(index, Register::GPFSEL0, 10, 3) as u8).unwrap()
 	}
 
-	pub fn pin_level(&self, index: u32) -> bool {
-		self.read_pin_bits(index, Reg::GPLEV0, 32, 1) != 0
+	pub fn pin_level(&self, index: usize) -> bool {
+		self.read_pin_bits(index, Register::GPLEV0, 32, 1) != 0
 	}
 
-	pub fn pin_event(&self, index: u32) -> bool {
-		self.read_pin_bits(index, Reg::GPPEDS0, 32, 1) != 0
+	pub fn pin_event(&self, index: usize) -> bool {
+		self.read_pin_bits(index, Register::GPEDS0, 32, 1) != 0
 	}
 
-	pub fn pin_detect_rise(&self, index: u32) -> bool {
-		self.read_pin_bits(index, Reg::GPREN0, 32, 1) != 0
+	pub fn pin_detect_rise(&self, index: usize) -> bool {
+		self.read_pin_bits(index, Register::GPREN0, 32, 1) != 0
 	}
 
-	pub fn pin_detect_fall(&self, index: u32) -> bool {
-		self.read_pin_bits(index, Reg::GPFEN0, 32, 1) != 0
+	pub fn pin_detect_fall(&self, index: usize) -> bool {
+		self.read_pin_bits(index, Register::GPFEN0, 32, 1) != 0
 	}
 
-	pub fn pin_detect_high(&self, index: u32) -> bool {
-		self.read_pin_bits(index, Reg::GPHEN0, 32, 1) != 0
+	pub fn pin_detect_high(&self, index: usize) -> bool {
+		self.read_pin_bits(index, Register::GPHEN0, 32, 1) != 0
 	}
 
-	pub fn pin_detect_low(&self, index: u32) -> bool {
-		self.read_pin_bits(index, Reg::GPLEN0, 32, 1) != 0
+	pub fn pin_detect_low(&self, index: usize) -> bool {
+		self.read_pin_bits(index, Register::GPLEN0, 32, 1) != 0
 	}
 
-	pub fn pin_detect_async_rise(&self, index: u32) -> bool {
-		self.read_pin_bits(index, Reg::GPAREN0, 32, 1) != 0
+	pub fn pin_detect_async_rise(&self, index: usize) -> bool {
+		self.read_pin_bits(index, Register::GPAREN0, 32, 1) != 0
 	}
 
-	pub fn pin_detect_async_fall(&self, index: u32) -> bool {
-		self.read_pin_bits(index, Reg::GPAFEN0, 32, 1) != 0
+	pub fn pin_detect_async_fall(&self, index: usize) -> bool {
+		self.read_pin_bits(index, Register::GPAFEN0, 32, 1) != 0
 	}
 
-	pub fn pin(&self, index: u32) -> PinInfo {
+	pub fn pin(&self, index: usize) -> PinInfo {
 		PinInfo {
 			mode:              self.pin_mode(index),
 			level:             self.pin_level(index),
@@ -85,19 +85,19 @@ impl RpioState {
 		(0..53).map(|i| self.pin(i)).collect()
 	}
 
-	fn read_pin_bits(&self, index: u32, base: Reg, pins_per_register: u8, bits_per_pin: u8) -> u32 {
-		assert!(index <= 53, "gpio pin index out of range, expected a value in the range [0-53], got {}", index);
+	fn read_pin_bits(&self, index: usize, base: Register, pins_per_register: u8, bits_per_pin: u8) -> u32 {
+		crate::assert_pin_index(index);
 
-		let pins_per_register = pins_per_register as u32;
-		let bits_per_pin      = bits_per_pin      as u32;
+		let pins_per_register = pins_per_register as usize;
+		let bits_per_pin      = bits_per_pin      as usize;
 
 		// Register has a relative byte address,
 		// but registers are 32 bit.
-		let base           = base as u32 / 4;
+		let base           = base as usize / 4;
 		let register_index = base + index / pins_per_register;
 		let index          = index % pins_per_register;
 
-		let value = self.data[register_index as usize] >> (bits_per_pin * index);
+		let value = self.data[register_index] >> (bits_per_pin * index);
 		let mask  = !(std::u32::MAX << bits_per_pin);
 		value & mask
 	}
