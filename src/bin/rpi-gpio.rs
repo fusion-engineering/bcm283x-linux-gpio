@@ -1,5 +1,4 @@
-pub mod lib;
-use lib::{Rpio, PinInfo};
+use rpi_gpio::{Rpio, PinInfo};
 
 use structopt::StructOpt;
 
