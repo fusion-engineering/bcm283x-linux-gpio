@@ -4,6 +4,10 @@ use lib::{Rpio, PinInfo};
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
+#[structopt(max_term_width = 120)]
+#[structopt(raw(setting = "structopt::clap::AppSettings::DeriveDisplayOrder"))]
+#[structopt(raw(setting = "structopt::clap::AppSettings::UnifiedHelpMessage"))]
+#[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
 struct Options {
 	#[structopt(long = "verbose", short = "v")]
 	/// Show more information.
