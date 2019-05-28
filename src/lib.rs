@@ -2,19 +2,54 @@
 #![feature(core_intrinsics)]
 
 use nix::sys::mman;
+use std::fmt::Display;
+use std::io::Read;
 
-const CONTROL_BLOCK_ADDRESS : i64   = 0x3f200000;
-const CONTROL_BLOCK_SIZE    : usize = 0x00000100;
+const CONTROL_BLOCK_SIZE : usize = 0x00000100;
 
 mod read;
 mod register;
 mod write;
+
+use nix::errno::Errno;
 
 pub use read::GpioState;
 pub use read::PinInfo;
 pub use register::Register;
 pub use write::GpioConfig;
 pub use write::GpioPullConfig;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Error {
+	message: String,
+	errno: Option<Errno>,
+}
+
+impl Error {
+	fn new(message: impl std::string::ToString, errno: Option<Errno>) -> Self {
+		Self { message: message.to_string(), errno }
+	}
+
+	fn from_nix(message: impl std::string::ToString, error: nix::Error) -> Self {
+		Self::new(message, error.as_errno())
+	}
+
+	fn from_io(message: impl std::string::ToString, error: std::io::Error) -> Self {
+		let errno = error.raw_os_error().map(Errno::from_i32);
+		Self::new(message, errno)
+	}
+}
+
+impl Display for Error {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self.errno {
+			None => write!(f, "{}", self.message),
+			Some(errno) => write!(f, "{}: {}", self.message, errno),
+		}
+	}
+}
+
+impl std::error::Error for Error {}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum PinMode {
@@ -34,12 +69,6 @@ pub enum PullMode {
 	Float,
 	PullDown,
 	PullUp,
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
-pub struct MaskedValue {
-	value : u32,
-	mask  : u32,
 }
 
 impl PinMode {
@@ -71,7 +100,6 @@ impl PinMode {
 	}
 }
 
-
 pub struct Rpio {
 	control_block: *mut std::ffi::c_void,
 }
@@ -87,16 +115,19 @@ impl Rpio {
 	///  - the kernel was compiled with CONFIG_IO_STRICT_DEVMEM.
 	///  - the kernel was compiled with CONFIG_STRICT_DEVMEM,
 	///    and not started with `iomem=relaxed` on the kernel command line.
-	pub fn new() -> nix::Result<Rpio> {
-		use nix::{fcntl::OFlag, sys::stat::Mode};
+	pub fn new() -> Result<Rpio, Error> {
+		use std::os::unix::io::AsRawFd;
 
-		let fd = nix::fcntl::open("/dev/mem", OFlag::O_CLOEXEC | OFlag::O_RDONLY, Mode::empty())?;
-		let control_block = unsafe { mman::mmap(std::ptr::null_mut(), CONTROL_BLOCK_SIZE, mman::ProtFlags::PROT_READ, mman::MapFlags::MAP_SHARED, fd, CONTROL_BLOCK_ADDRESS)? };
-		drop(nix::unistd::close(fd));
+		let gpio_address = read_gpio_address()?;
 
-		Ok(Self {
-			control_block
-		})
+		let file = std::fs::File::open("/dev/mem").map_err(|e| Error::from_io(&"failed to open /dev/mem", e))?;
+		let fd   = file.as_raw_fd();
+		let control_block = unsafe {
+			mman::mmap(std::ptr::null_mut(), CONTROL_BLOCK_SIZE, mman::ProtFlags::PROT_READ, mman::MapFlags::MAP_SHARED, fd, gpio_address)
+				.map_err(|e| Error::from_nix(format!("failed to map GPIO memory ({:08X}) from /dev/mem", gpio_address), e))?
+		};
+
+		Ok(Self { control_block })
 	}
 
 	/// Read the entire current GPIO state.
@@ -172,4 +203,62 @@ impl Drop for Rpio {
 
 fn assert_pin_index(index: usize) {
 	assert!(index <= 53, "gpio pin index out of range, expected a value in the range [0-53], got {}", index);
+}
+
+fn partition(data: &[u8], split_on: u8) -> Result<(&[u8], &[u8]), ()> {
+	let mut iterator = data.splitn(2, |c| *c == split_on);
+
+	let a = match iterator.next() {
+		Some(x) => x,
+		None    => return Err(()),
+	};
+
+	let b = match iterator.next() {
+		Some(x) => x,
+		None    => return Err(()),
+	};
+
+	Ok((a, b))
+}
+
+fn is_whitespace(c: u8) -> bool {
+	c == b' ' || c == b'\t' || c == b'\n' || c == b'\r'
+}
+
+fn trim(data: &[u8]) -> &[u8] {
+	let first = match data.iter().position(|x| !is_whitespace(*x)) {
+		None => return &data[0..0],
+		Some(x) => x,
+	};
+
+	let last = match data.iter().rposition(|x| !is_whitespace(*x)) {
+		None => return &data[0..0],
+		Some(x) => x,
+	};
+
+	&data[first..last+1]
+}
+
+
+fn read_gpio_address() -> Result<i64, Error> {
+	let mut file = std::fs::File::open("/proc/iomem").map_err(|e| Error::from_io(&"failed to open /proc/iomem", e))?;
+	let mut data = Vec::new();
+	file.read_to_end(&mut data).map_err(|e| Error::from_io(&"failed to read /dev/iomem", e))?;
+
+	// Loop over lines.
+	for (i, line) in data.split(|c| *c == b'\n').enumerate().filter(|(_, line)| !line.is_empty()) {
+		// Split kernel range from peripheral name.
+		let (range, peripheral) = partition(line, b':').map_err(|_| Error::new(format!("malformed entry in /proc/iomem on line {}", i), None))?;
+		let range = trim(range);
+		let peripheral = trim(peripheral);
+
+		if peripheral == b"gpio@7e200000" {
+			let (start, _end) = partition(range, b'-').map_err(|_| Error::new(format!("malformed entry in /proc/iomem on line {}", i), None))?;
+			let start = std::str::from_utf8(start).map_err(|_| Error::new(format!("malformed entry in /proc/iomem on line {}", i), None))?;
+			let start = i64::from_str_radix(start, 16).map_err(|_| Error::new(format!("invalid start address in /proc/iomem on line {}: {}", i, start), None))?;
+			return Ok(start);
+		}
+	}
+
+	Err(Error::new(&"failed to find GPIO peripheral in /proc/iomem", None))
 }

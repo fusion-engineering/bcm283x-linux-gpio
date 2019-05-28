@@ -58,9 +58,9 @@ fn main() {
 	let mut rpio = match Rpio::new() {
 		Ok(x) => x,
 		Err(error) => {
-			eprintln!("Failed to map IO memory from /dev/mem: {}", error);
+			eprintln!("{}", error);
 			eprintln!();
-			eprintln!("Make sure to run the application as root and that your kernel was configured properly.");
+			eprintln!("Make sure to run the application as root on a BCM2835/7 CPU and that your kernel was configured properly.");
 			eprintln!("You may need to disable CONFIG_IO_STRICT_DEVMEM and add iomem=relaxed to the kernel command line.");
 			std::process::exit(1);
 		}
