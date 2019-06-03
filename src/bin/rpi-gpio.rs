@@ -34,10 +34,23 @@ impl PinCommand {
 }
 
 #[derive(StructOpt)]
+#[structopt(author = "Fusion Engineering <oss@fusion.engineering>")]
+#[structopt(about = "Inspect and modify BCM2835/7 GPIO state.")]
 #[structopt(max_term_width = 120)]
 #[structopt(raw(setting = "structopt::clap::AppSettings::DeriveDisplayOrder"))]
 #[structopt(raw(setting = "structopt::clap::AppSettings::UnifiedHelpMessage"))]
 #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
+#[structopt(after_help = "
+Allowed pin options:
+    level=on/off
+    function=input/output/alt0..5
+    detect-rise=on/off
+    detect-fall=on/off
+    detect-high=on/off
+    detect-low=on/off
+    detect-async-high=on/off
+    detect-async-low=on/off
+")]
 struct Options {
 	/// Show more information.
 	#[structopt(long = "verbose", short = "v")]
@@ -52,10 +65,12 @@ struct Options {
 	no_verify_cpu: bool,
 
 	/// Configure a GPIO pin.
+	/// May be specified multiple times.
+	///
 	#[structopt(
 		long = "set-pin",
 		short = "s",
-		value_name = "CONFIG",
+		value_name = "PIN,OPTION,OPTION...",
 		number_of_values = 1,
 	)]
 	pins: Vec<PinCommand>,
