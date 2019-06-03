@@ -120,14 +120,19 @@ impl Rpio {
 
 		let gpio_address = read_gpio_address()?;
 
-		let file = std::fs::File::open("/dev/mem").map_err(|e| Error::from_io(&"failed to open /dev/mem", e))?;
-		let fd   = file.as_raw_fd();
+		let file = open_rw("/dev/mem")?;
+		let fd   = file.file.as_raw_fd();
 		let control_block = unsafe {
-			mman::mmap(std::ptr::null_mut(), CONTROL_BLOCK_SIZE, mman::ProtFlags::PROT_READ, mman::MapFlags::MAP_SHARED, fd, gpio_address)
-				.map_err(|e| Error::from_nix(format!("failed to map GPIO memory ({:08X}) from /dev/mem", gpio_address), e))?
+			mman::mmap(std::ptr::null_mut(), CONTROL_BLOCK_SIZE, mman::ProtFlags::PROT_READ | mman::ProtFlags::PROT_WRITE, mman::MapFlags::MAP_SHARED, fd, gpio_address)
+				.map_err(|e| Error::from_nix(format!("failed to map GPIO memory (0x{:08X}) from /dev/mem", gpio_address), e))?
 		};
 
 		Ok(Self { control_block })
+	}
+
+	/// Get the pointer to the mapped control block.
+	pub fn control_block(&self) -> *mut std::ffi::c_void {
+		self.control_block
 	}
 
 	/// Read the entire current GPIO state.

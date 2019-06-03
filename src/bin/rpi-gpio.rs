@@ -81,6 +81,11 @@ fn main() {
 		}
 	};
 
+	if options.verbose {
+		let address = rpio.control_block() as usize;
+		eprintln!("mapped IO control block at: 0x{:X}", address);
+	}
+
 	if !options.pins.is_empty() {
 		let (gpio, pud) = config_from_commands(&options.pins);
 		gpio.apply(&mut rpio);
