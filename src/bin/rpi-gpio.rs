@@ -43,6 +43,10 @@ struct Options {
 	#[structopt(long = "verbose", short = "v")]
 	verbose: bool,
 
+	/// Allow setting unsafe parameters, such as pull up/down state and event detect bits.
+	#[structopt(long = "unsafe")]
+	allow_unsafe: bool,
+
 	/// Dangerous: skip the verification of the CPU.
 	#[structopt(long = "no-verify-cpu")]
 	no_verify_cpu: bool,
@@ -73,7 +77,7 @@ fn main() {
 	let mut rpio = match Rpio::new() {
 		Ok(x) => x,
 		Err(error) => {
-			eprintln!("{}", error);
+			eprintln!("Error: {}", error);
 			eprintln!();
 			eprintln!("Make sure to run the application as root on a BCM2835/7 CPU and that your kernel was configured properly.");
 			eprintln!("You may need to disable CONFIG_IO_STRICT_DEVMEM and add iomem=relaxed to the kernel command line.");
@@ -87,7 +91,13 @@ fn main() {
 	}
 
 	if !options.pins.is_empty() {
-		let (gpio, pud) = config_from_commands(&options.pins);
+		let (gpio, pud) = match config_from_commands(&options.pins, options.allow_unsafe) {
+			Ok(x) => x,
+			Err(error) => {
+				eprintln!("Error: {}", error);
+				std::process::exit(1);
+			}
+		};
 		gpio.apply(&mut rpio);
 		unsafe {
 			pud.apply(&mut rpio);
@@ -261,9 +271,17 @@ fn set_pull(dest: &mut Option<PullMode>, key: &str, value: &str) -> Result<(), S
 	Ok(())
 }
 
-fn config_from_commands(commands: &[PinCommand]) -> (GpioConfig, GpioPullConfig) {
+fn config_from_commands(commands: &[PinCommand], allow_unsafe: bool) -> Result<(GpioConfig, GpioPullConfig), String> {
 	let mut gpio = rpi_gpio::GpioConfig::new();
 	let mut pud  = rpi_gpio::GpioPullConfig::new();
+
+	let check_unsafe = |name| {
+		if allow_unsafe {
+			Ok(())
+		} else {
+			Err(format!("trying to set unsafe pin option `{}` without --unsafe", name))
+		}
+	};
 
 	for pin in commands {
 		if let Some(value) = pin.set_level {
@@ -273,27 +291,34 @@ fn config_from_commands(commands: &[PinCommand]) -> (GpioConfig, GpioPullConfig)
 			gpio.set_function(pin.index, value);
 		}
 		if let Some(value) = pin.set_pull_mode {
+			check_unsafe("pull-mode")?;
 			pud.set_pull_mode(pin.index, value);
 		}
 		if let Some(value) = pin.set_detect_rise {
+			check_unsafe("detect-rise")?;
 			gpio.set_detect_rise(pin.index, value);
 		}
 		if let Some(value) = pin.set_detect_fall {
+			check_unsafe("detect-fall")?;
 			gpio.set_detect_fall(pin.index, value);
 		}
 		if let Some(value) = pin.set_detect_high {
+			check_unsafe("detect-high")?;
 			gpio.set_detect_high(pin.index, value);
 		}
 		if let Some(value) = pin.set_detect_low {
+			check_unsafe("detect-low")?;
 			gpio.set_detect_low(pin.index, value);
 		}
 		if let Some(value) = pin.set_detect_async_rise {
+			check_unsafe("detect-async-rise")?;
 			gpio.set_detect_async_rise(pin.index, value);
 		}
 		if let Some(value) = pin.set_detect_async_fall {
+			check_unsafe("detect-async-fall")?;
 			gpio.set_detect_async_fall(pin.index, value);
 		}
 	}
 
-	(gpio, pud)
+	Ok((gpio, pud))
 }
