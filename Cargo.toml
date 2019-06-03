@@ -1,11 +1,13 @@
 [package]
-name = "rpi-gpio"
-description = "Library and CLI application to inspect RPi GPIO"
-version = "0.1.1"
+name = "bcm283x-linux-gpio"
+description = "Library and CLI application to work with BCM2835/7 GPIO from Linux"
+version = "0.2.0"
 authors = [
 	"Fusion Engineering <oss@fusion.engineering>",
 	"Maarten de Vries <maarten@de-vri.es>",
 ]
+repository = "https://github.com/fusion-engineering/bcm283x-linux-gpio"
+keywords = ["gpio", "bcm2835", "bcm2837", "raspberry-pi", "RPi"]
 edition = "2018"
 license = "BSD-2-Clause"
 readme  = "README.md"

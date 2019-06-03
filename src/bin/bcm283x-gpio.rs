@@ -1,6 +1,6 @@
 // vi: sw=4 ts=4 noexpandtab
 use yansi::Paint;
-use rpi_gpio::{
+use bcm283x_linux_gpio::{
 	check_bcm283x_gpio,
 	GpioConfig,
 	GpioPullConfig,
@@ -288,8 +288,8 @@ fn set_pull(dest: &mut Option<PullMode>, key: &str, value: &str) -> Result<(), S
 }
 
 fn config_from_commands(commands: &[PinCommand], allow_unsafe: bool) -> Result<(GpioConfig, GpioPullConfig), String> {
-	let mut gpio = rpi_gpio::GpioConfig::new();
-	let mut pud  = rpi_gpio::GpioPullConfig::new();
+	let mut gpio = GpioConfig::new();
+	let mut pud  = GpioPullConfig::new();
 
 	let check_unsafe = |name| {
 		if allow_unsafe {

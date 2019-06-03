@@ -19,6 +19,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bcm283x-linux-gpio"
+version = "0.2.0"
+dependencies = [
+ "nix 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "structopt 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yansi 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -104,15 +113,6 @@ version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "redox_syscall 0.1.54 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "rpi-gpio"
-version = "0.1.1"
-dependencies = [
- "nix 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "structopt 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "yansi 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
