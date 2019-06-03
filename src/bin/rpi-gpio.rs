@@ -1,9 +1,10 @@
+// vi: sw=4 ts=4 noexpandtab
 use yansi::Paint;
 use rpi_gpio::{
 	check_bcm283x_gpio,
 	GpioConfig,
 	GpioPullConfig,
-	Rpio,
+	Gpio,
 	PinInfo,
 	PinFunction,
 	PullMode,
@@ -98,7 +99,7 @@ fn main() {
 		}
 	}
 
-	let mut rpio = match Rpio::new() {
+	let mut gpio = match Gpio::new() {
 		Ok(x) => x,
 		Err(error) => {
 			eprintln!("{}: {}", Paint::red("Error").bold(), error);
@@ -110,18 +111,18 @@ fn main() {
 	};
 
 	if options.verbose {
-		let address = rpio.control_block() as usize;
+		let address = gpio.control_block() as usize;
 		eprintln!("mapped IO control block at: 0x{:X}", address);
 	}
 
 	if !options.pins.is_empty() {
-		gpio_config.apply(&mut rpio);
+		gpio_config.apply(&mut gpio);
 		unsafe {
-			pud_config.apply(&mut rpio);
+			pud_config.apply(&mut gpio);
 		}
 	}
 
-	for (index, pin) in rpio.read_all().pins().iter().enumerate() {
+	for (index, pin) in gpio.read_all().pins().iter().enumerate() {
 		print_pin(index, pin, options.verbose);
 	}
 }

@@ -100,11 +100,11 @@ impl PinFunction {
 	}
 }
 
-pub struct Rpio {
+pub struct Gpio {
 	control_block: *mut std::ffi::c_void,
 }
 
-impl Rpio {
+impl Gpio {
 	/// Create a new handle to the GPIO peripheral.
 	///
 	/// This will attempt to map a portion of /dev/mem,
@@ -115,7 +115,7 @@ impl Rpio {
 	///  - the kernel was compiled with CONFIG_IO_STRICT_DEVMEM.
 	///  - the kernel was compiled with CONFIG_STRICT_DEVMEM,
 	///    and not started with `iomem=relaxed` on the kernel command line.
-	pub fn new() -> Result<Rpio, Error> {
+	pub fn new() -> Result<Self, Error> {
 		use std::os::unix::io::AsRawFd;
 
 		let gpio_address = read_gpio_address()?;
@@ -193,7 +193,7 @@ impl Rpio {
 	}
 }
 
-impl Drop for Rpio {
+impl Drop for Gpio {
 	fn drop(&mut self) {
 		unsafe {
 			drop(mman::munmap(self.control_block, CONTROL_BLOCK_SIZE))

@@ -1,4 +1,4 @@
-use crate::{PinFunction, PullMode, Register, Rpio};
+use crate::{PinFunction, PullMode, Register, Gpio};
 
 /// Wait for one clock cycle.
 fn nop() {
@@ -89,21 +89,21 @@ impl GpioConfig {
 	}
 
 	/// Apply the configuration.
-	pub fn apply(&self, rpio: &mut Rpio) {
+	pub fn apply(&self, gpio: &mut Gpio) {
 		unsafe {
-			self.apply_functions(rpio);
-			self.apply_levels(rpio);
+			self.apply_functions(gpio);
+			self.apply_levels(gpio);
 
-			apply_registers(rpio, Register::ren,  &self.detect_rise);
-			apply_registers(rpio, Register::fen,  &self.detect_fall);
-			apply_registers(rpio, Register::hen,  &self.detect_high);
-			apply_registers(rpio, Register::len,  &self.detect_low);
-			apply_registers(rpio, Register::aren, &self.detect_async_rise);
-			apply_registers(rpio, Register::afen, &self.detect_async_fall);
+			apply_registers(gpio, Register::ren,  &self.detect_rise);
+			apply_registers(gpio, Register::fen,  &self.detect_fall);
+			apply_registers(gpio, Register::hen,  &self.detect_high);
+			apply_registers(gpio, Register::len,  &self.detect_low);
+			apply_registers(gpio, Register::aren, &self.detect_async_rise);
+			apply_registers(gpio, Register::afen, &self.detect_async_fall);
 		}
 	}
 
-	unsafe fn apply_functions(&self, rpio: &mut Rpio) {
+	unsafe fn apply_functions(&self, gpio: &mut Gpio) {
 		let mut mask  = [0u32; 6];
 		let mut value = [0u32; 6];
 
@@ -119,14 +119,14 @@ impl GpioConfig {
 		for i in 0..6 {
 			// Zero all pins that we're chaning.
 			// This will set them to inputs, but that should be safe.
-			rpio.and_register(Register::fsel(i), !mask[i]);
+			gpio.and_register(Register::fsel(i), !mask[i]);
 
 			// Then set the actual functions.
-			rpio.or_register(Register::fsel(i), value[i]);
+			gpio.or_register(Register::fsel(i), value[i]);
 		}
 	}
 
-	unsafe fn apply_levels(&self, rpio: &mut Rpio) {
+	unsafe fn apply_levels(&self, gpio: &mut Gpio) {
 		let mut set = [0u32; 2];
 		let mut clr = [0u32; 2];
 
@@ -143,8 +143,8 @@ impl GpioConfig {
 		}
 
 		for i in 0..2 {
-			rpio.write_register(Register::set(i), set[i]);
-			rpio.write_register(Register::clr(i), clr[i]);
+			gpio.write_register(Register::set(i), set[i]);
+			gpio.write_register(Register::clr(i), clr[i]);
 		}
 	}
 }
@@ -165,7 +165,7 @@ impl GpioPullConfig {
 	/// This is not atomic.
 	/// If another process or the kernel is trying to change pull up/down
 	/// settings at the same time, the wrong type of pull up/down may be applied to pins.
-	pub unsafe fn apply(&self, rpio: &mut Rpio) {
+	pub unsafe fn apply(&self, gpio: &mut Gpio) {
 		let mut float_clk     = [0u32; 2];
 		let mut pull_up_clk   = [0u32; 2];
 		let mut pull_down_clk = [0u32; 2];
@@ -179,36 +179,36 @@ impl GpioPullConfig {
 			}
 		}
 
-		Self::apply_pull_mode(rpio, 0b00, float_clk);
-		Self::apply_pull_mode(rpio, 0b10, pull_up_clk);
-		Self::apply_pull_mode(rpio, 0b01, pull_down_clk);
+		Self::apply_pull_mode(gpio, 0b00, float_clk);
+		Self::apply_pull_mode(gpio, 0b10, pull_up_clk);
+		Self::apply_pull_mode(gpio, 0b01, pull_down_clk);
 	}
 
-	unsafe fn apply_pull_mode(rpio: &mut Rpio, mode: u32, pins: [u32; 2]) {
+	unsafe fn apply_pull_mode(gpio: &mut Gpio, mode: u32, pins: [u32; 2]) {
 		// Do nothing if not necessary.
 		if pins[0] == 0 && pins[1] == 0 {
 			return;
 		}
 
 		// Set the pull up/down bits and wait for 150 cycles.
-		rpio.write_register(Register::GPPUDCLK0, 0);
-		rpio.write_register(Register::GPPUDCLK1, 0);
-		rpio.write_register(Register::GPPUD, mode);
+		gpio.write_register(Register::GPPUDCLK0, 0);
+		gpio.write_register(Register::GPPUDCLK1, 0);
+		gpio.write_register(Register::GPPUD, mode);
 		wait_cycles(150);
 
 		// Set the clock for the pins to modify and wait 150 cycles.
-		rpio.write_register(Register::GPPUDCLK0, pins[0]);
-		rpio.write_register(Register::GPPUDCLK1, pins[1]);
+		gpio.write_register(Register::GPPUDCLK0, pins[0]);
+		gpio.write_register(Register::GPPUDCLK1, pins[1]);
 		wait_cycles(150);
 
 		// Clear the signal and the clocks.
-		rpio.write_register(Register::GPPUDCLK0, 0);
-		rpio.write_register(Register::GPPUDCLK1, 0);
-		rpio.write_register(Register::GPPUD,     0);
+		gpio.write_register(Register::GPPUDCLK0, 0);
+		gpio.write_register(Register::GPPUDCLK1, 0);
+		gpio.write_register(Register::GPPUD,     0);
 	}
 }
 
-unsafe fn apply_registers<F>(rpio: &mut Rpio, register: F, values: &[Option<bool>; 54])
+unsafe fn apply_registers<F>(gpio: &mut Gpio, register: F, values: &[Option<bool>; 54])
 where
 	F: Fn(usize) -> Register,
 {
@@ -226,9 +226,9 @@ where
 
 	for i in 0..2 {
 		// Zero all bits that we're changing.
-		rpio.and_register(register(i), !out_l[i]);
+		gpio.and_register(register(i), !out_l[i]);
 
 		// Then or the ones into them.
-		rpio.or_register(register(i), out_h[i]);
+		gpio.or_register(register(i), out_h[i]);
 	}
 }
