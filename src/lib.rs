@@ -152,23 +152,18 @@ impl Rpio {
 	}
 
 	/// Perform an atomaic bitwise AND on the contents of a register.
-	pub unsafe fn and_register(&mut self, reg: Register, value: u32) -> u32 {
-		std::intrinsics::atomic_and(self.register_address_mut(reg), value)
+	pub unsafe fn and_register(&mut self, reg: Register, value: u32) {
+		*self.register_address_mut(reg) &= value;
 	}
 
 	/// Perform an atomic bitwise OR on the contents of a register.
-	pub unsafe fn or_register(&mut self, reg: Register, value: u32) -> u32 {
-		std::intrinsics::atomic_or(self.register_address_mut(reg), value)
+	pub unsafe fn or_register(&mut self, reg: Register, value: u32) {
+		*self.register_address_mut(reg) |= value;
 	}
 
 	/// Perform an atomic bitwise XOR on the contents of a register.
-	pub unsafe fn xor_register(&mut self, reg: Register, value: u32) -> u32 {
-		std::intrinsics::atomic_xor(self.register_address_mut(reg), value)
-	}
-
-	/// Perform an atomic bitwise NAND on the contents of a register.
-	pub unsafe fn nand_register(&mut self, reg: Register, value: u32) -> u32 {
-		std::intrinsics::atomic_xor(self.register_address_mut(reg), value)
+	pub unsafe fn xor_register(&mut self, reg: Register, value: u32) {
+		*self.register_address_mut(reg) ^= value;
 	}
 
 	/// Read the current level of a GPIO pin.
