@@ -52,7 +52,7 @@ impl Display for Error {
 impl std::error::Error for Error {}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum PinMode {
+pub enum PinFunction {
 	Input,
 	Output,
 	Alt0,
@@ -71,31 +71,31 @@ pub enum PullMode {
 	PullUp,
 }
 
-impl PinMode {
+impl PinFunction {
 	pub fn try_from_bits(bits: u8) -> Result<Self, ()> {
 		match bits {
-			0b000 => Ok(PinMode::Input),
-			0b001 => Ok(PinMode::Output),
-			0b100 => Ok(PinMode::Alt0),
-			0b101 => Ok(PinMode::Alt1),
-			0b110 => Ok(PinMode::Alt2),
-			0b111 => Ok(PinMode::Alt3),
-			0b011 => Ok(PinMode::Alt4),
-			0b010 => Ok(PinMode::Alt5),
+			0b000 => Ok(PinFunction::Input),
+			0b001 => Ok(PinFunction::Output),
+			0b100 => Ok(PinFunction::Alt0),
+			0b101 => Ok(PinFunction::Alt1),
+			0b110 => Ok(PinFunction::Alt2),
+			0b111 => Ok(PinFunction::Alt3),
+			0b011 => Ok(PinFunction::Alt4),
+			0b010 => Ok(PinFunction::Alt5),
 			_     => Err(())
 		}
 	}
 
 	pub fn to_bits(self) -> u8 {
 		match self {
-			PinMode::Input  => 0b000,
-			PinMode::Output => 0b001,
-			PinMode::Alt0   => 0b100,
-			PinMode::Alt1   => 0b101,
-			PinMode::Alt2   => 0b110,
-			PinMode::Alt3   => 0b111,
-			PinMode::Alt4   => 0b011,
-			PinMode::Alt5   => 0b010,
+			PinFunction::Input  => 0b000,
+			PinFunction::Output => 0b001,
+			PinFunction::Alt0   => 0b100,
+			PinFunction::Alt1   => 0b101,
+			PinFunction::Alt2   => 0b110,
+			PinFunction::Alt3   => 0b111,
+			PinFunction::Alt4   => 0b011,
+			PinFunction::Alt5   => 0b010,
 		}
 	}
 }

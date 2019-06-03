@@ -4,7 +4,7 @@ use rpi_gpio::{
 	GpioPullConfig,
 	Rpio,
 	PinInfo,
-	PinMode,
+	PinFunction,
 	PullMode,
 };
 
@@ -14,7 +14,7 @@ use structopt::StructOpt;
 struct PinCommand {
 	index                 : usize,
 	set_level             : Option<bool>,
-	set_function          : Option<PinMode>,
+	set_function          : Option<PinFunction>,
 	set_pull_mode         : Option<PullMode>,
 	set_detect_rise       : Option<bool>,
 	set_detect_fall       : Option<bool>,
@@ -107,8 +107,8 @@ fn print_pin(index: usize, pin: &PinInfo, verbose: bool) {
 		false => Paint::red("LOW"),
 	};
 
-	let mode = format!("{:?}", pin.mode);
-	print!("pin={:<2}   level={:4}   mode={:6}", Paint::yellow(index), level, Paint::cyan(mode));
+	let function = format!("{:?}", pin.function);
+	print!("pin={:<2}   level={:4}   function={:6}", Paint::yellow(index), level, Paint::cyan(function));
 
 	if verbose {
 		let event = match pin.level {
@@ -197,7 +197,6 @@ impl std::str::FromStr for PinCommand {
 			match key {
 				"level"             => set_bool(&mut command.set_level, key, value)?,
 				"function"          => set_function(&mut command.set_function, key, value)?,
-				"mode"              => set_function(&mut command.set_function, key, value)?,
 				"pull"              => set_pull(&mut command.set_pull_mode, key, value)?,
 				"detect-rise"       => set_bool(&mut command.set_detect_rise, key, value)?,
 				"detect-fall"       => set_bool(&mut command.set_detect_fall, key, value)?,
@@ -227,20 +226,20 @@ fn set_bool(dest: &mut Option<bool>, key: &str, value: &str) -> Result<(), Strin
 	Ok(())
 }
 
-fn set_function(dest: &mut Option<PinMode>, key: &str, value: &str) -> Result<(), String> {
+fn set_function(dest: &mut Option<PinFunction>, key: &str, value: &str) -> Result<(), String> {
 	if dest.is_some() {
 		return Err(format!("option `{}` already set", key))
 	}
 
 	dest.replace(match value {
-		"input"  | "in"  => PinMode::Input,
-		"output" | "out" => PinMode::Output,
-		"alt0"           => PinMode::Alt0,
-		"alt1"           => PinMode::Alt1,
-		"alt2"           => PinMode::Alt2,
-		"alt3"           => PinMode::Alt3,
-		"alt4"           => PinMode::Alt4,
-		"alt5"           => PinMode::Alt5,
+		"input"  | "in"  => PinFunction::Input,
+		"output" | "out" => PinFunction::Output,
+		"alt0"           => PinFunction::Alt0,
+		"alt1"           => PinFunction::Alt1,
+		"alt2"           => PinFunction::Alt2,
+		"alt3"           => PinFunction::Alt3,
+		"alt4"           => PinFunction::Alt4,
+		"alt5"           => PinFunction::Alt5,
 		_ => return Err(format!("unknown pin function: {}, expected input, output or alt0..5", value)),
 	});
 

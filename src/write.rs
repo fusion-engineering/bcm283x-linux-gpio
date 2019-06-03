@@ -1,4 +1,4 @@
-use crate::{PinMode, PullMode, Register, Rpio};
+use crate::{PinFunction, PullMode, Register, Rpio};
 
 /// Wait for one clock cycle.
 fn nop() {
@@ -21,7 +21,7 @@ fn wait_cycles(cycles: usize) {
 /// For example, setting the function of pin 1 will not change the function of pin 2.
 #[derive(Clone)]
 pub struct GpioConfig {
-	pub function          : [Option<PinMode>; 54],
+	pub function          : [Option<PinFunction>; 54],
 	pub level             : [Option<bool>; 54],
 	pub detect_rise       : [Option<bool>; 54],
 	pub detect_fall       : [Option<bool>; 54],
@@ -56,8 +56,8 @@ impl GpioConfig {
 		}
 	}
 
-	pub fn set_function(&mut self, pin: usize, mode: PinMode) {
-		self.function[pin] = Some(mode);
+	pub fn set_function(&mut self, pin: usize, function: PinFunction) {
+		self.function[pin] = Some(function);
 	}
 
 	pub fn set_level(&mut self, pin: usize, level: bool) {

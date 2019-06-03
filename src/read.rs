@@ -1,8 +1,8 @@
-use crate::{PinMode, Register};
+use crate::{PinFunction, Register};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PinInfo {
-	pub mode: PinMode,
+	pub function: PinFunction,
 	pub level: bool,
 	pub event: bool,
 	pub detect_rise: bool,
@@ -31,8 +31,8 @@ impl GpioState {
 		self.data
 	}
 
-	pub fn pin_mode(&self, index: usize) -> PinMode {
-		PinMode::try_from_bits(self.read_pin_bits(index, Register::GPFSEL0, 10, 3) as u8).unwrap()
+	pub fn pin_function(&self, index: usize) -> PinFunction {
+		PinFunction::try_from_bits(self.read_pin_bits(index, Register::GPFSEL0, 10, 3) as u8).unwrap()
 	}
 
 	pub fn pin_level(&self, index: usize) -> bool {
@@ -69,7 +69,7 @@ impl GpioState {
 
 	pub fn pin(&self, index: usize) -> PinInfo {
 		PinInfo {
-			mode:              self.pin_mode(index),
+			function:          self.pin_function(index),
 			level:             self.pin_level(index),
 			event:             self.pin_event(index),
 			detect_rise:       self.pin_detect_rise(index),
