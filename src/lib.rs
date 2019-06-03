@@ -239,11 +239,59 @@ fn trim(data: &[u8]) -> &[u8] {
 	&data[first..last+1]
 }
 
+struct FileWithPath {
+	pub path: std::path::PathBuf,
+	pub file: std::fs::File,
+}
 
-fn read_gpio_address() -> Result<i64, Error> {
-	let mut file = std::fs::File::open("/proc/iomem").map_err(|e| Error::from_io(&"failed to open /proc/iomem", e))?;
+fn open(path: impl Into<std::path::PathBuf>) -> Result<FileWithPath, Error> {
+	let path = path.into();
+	let file = std::fs::File::open(&path).map_err(|e| Error::from_io(format!("failed to open {}", path.display()), e))?;
+	Ok(FileWithPath {
+		path,
+		file,
+	})
+}
+
+fn open_rw(path: impl Into<std::path::PathBuf>) -> Result<FileWithPath, Error> {
+	let path = path.into();
+	let file = std::fs::OpenOptions::new().create(false).read(true).write(true).open(&path)
+		.map_err(|e| Error::from_io(format!("failed to open {}", path.display()), e))?;
+
+	Ok(FileWithPath {
+		path,
+		file,
+	})
+}
+
+fn read_all(file: FileWithPath) -> Result<Vec<u8>, Error> {
+	let mut file = file;
 	let mut data = Vec::new();
-	file.read_to_end(&mut data).map_err(|e| Error::from_io(&"failed to read /dev/iomem", e))?;
+	file.file.read_to_end(&mut data).map_err(|e| Error::from_io(format!("failed to read from {}", file.path.display()), e))?;
+	Ok(data)
+}
+
+/// Check whether the current platform has a bcm2835-gpio peripheral at the expected bus address.
+pub fn check_bcm283x_gpio() -> Result<(), Error> {
+	const EXPECTED: &str = "brcm,bcm2835-gpio";
+
+	let file = open("/proc/device-tree/soc/gpio@7e200000/compatible")?;
+	let mut data = read_all(file)?;
+	if data[data.len() - 1] == 0 {
+		data.pop();
+	}
+
+	if data == EXPECTED.as_bytes() {
+		Ok(())
+	} else {
+		Err(Error::new(format!("invalid gpio peripheral type, expected {}, got {:?}", EXPECTED, String::from_utf8_lossy(&data)), None))
+	}
+}
+
+/// Read the GPIO peripheral base address from /proc/iomem.
+fn read_gpio_address() -> Result<i64, Error> {
+	let file = open("/proc/iomem")?;
+	let data = read_all(file)?;
 
 	// Loop over lines.
 	for (i, line) in data.split(|c| *c == b'\n').enumerate().filter(|(_, line)| !line.is_empty()) {
@@ -252,7 +300,7 @@ fn read_gpio_address() -> Result<i64, Error> {
 		let range = trim(range);
 		let peripheral = trim(peripheral);
 
-		if peripheral == b"gpio@7e200000" {
+		if peripheral.ends_with(b".gpio") {
 			let (start, _end) = partition(range, b'-').map_err(|_| Error::new(format!("malformed entry in /proc/iomem on line {}", i), None))?;
 			let start = std::str::from_utf8(start).map_err(|_| Error::new(format!("malformed entry in /proc/iomem on line {}", i), None))?;
 			let start = i64::from_str_radix(start, 16).map_err(|_| Error::new(format!("invalid start address in /proc/iomem on line {}: {}", i, start), None))?;

@@ -1,10 +1,11 @@
 use rpi_gpio::{
+	check_bcm283x_gpio,
 	GpioConfig,
 	GpioPullConfig,
 	Rpio,
 	PinInfo,
 	PinMode,
-	PullMode
+	PullMode,
 };
 
 use structopt::StructOpt;
@@ -42,6 +43,10 @@ struct Options {
 	#[structopt(long = "verbose", short = "v")]
 	verbose: bool,
 
+	/// Dangerous: skip the verification of the CPU.
+	#[structopt(long = "no-verify-cpu")]
+	no_verify_cpu: bool,
+
 	/// Configure a GPIO pin.
 	#[structopt(
 		long = "set-pin",
@@ -54,6 +59,16 @@ struct Options {
 
 fn main() {
 	let options = Options::from_args();
+
+	if !options.no_verify_cpu {
+		if let Some(error) = check_bcm283x_gpio().err() {
+			eprintln!("Error: {}", error);
+			eprintln!("");
+			eprintln!("Failed to verify the CPU type. Make sure the program is being run on a BCM2835/7 CPU.");
+			eprintln!("Alternatively, add --no-verify-cpu to the command line, but note that this could be dangerous.");
+			std::process::exit(1);
+		}
+	}
 
 	let mut rpio = match Rpio::new() {
 		Ok(x) => x,
