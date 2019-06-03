@@ -92,6 +92,7 @@ impl GpioConfig {
 	pub fn apply(&self, rpio: &mut Rpio) {
 		unsafe {
 			self.apply_functions(rpio);
+			self.apply_levels(rpio);
 
 			apply_registers(rpio, Register::ren,  &self.detect_rise);
 			apply_registers(rpio, Register::fen,  &self.detect_fall);
@@ -122,6 +123,28 @@ impl GpioConfig {
 
 			// Then set the actual functions.
 			rpio.or_register(Register::fsel(i), value[i]);
+		}
+	}
+
+	unsafe fn apply_levels(&self, rpio: &mut Rpio) {
+		let mut set = [0u32; 2];
+		let mut clr = [0u32; 2];
+
+		for (pin, level) in self.level.iter().enumerate() {
+			if let Some(level) = level {
+				let reg   = pin / 32;
+				let index = pin % 32;
+				if *level {
+					set[reg] |= 1 << index;
+				} else {
+					clr[reg] |= 1 << index;
+				}
+			}
+		}
+
+		for i in 0..2 {
+			rpio.write_register(Register::set(i), set[i]);
+			rpio.write_register(Register::clr(i), clr[i]);
 		}
 	}
 }
