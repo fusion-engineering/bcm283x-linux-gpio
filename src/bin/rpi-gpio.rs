@@ -1,3 +1,4 @@
+use yansi::Paint;
 use rpi_gpio::{
 	check_bcm283x_gpio,
 	GpioConfig,
@@ -81,7 +82,7 @@ fn main() {
 
 	if !options.no_verify_cpu {
 		if let Some(error) = check_bcm283x_gpio().err() {
-			eprintln!("Error: {}", error);
+			eprintln!("{}: {}", Paint::red("Error").bold(), error);
 			eprintln!("");
 			eprintln!("Failed to verify the CPU type. Make sure the program is being run on a BCM2835/7 CPU.");
 			eprintln!("Alternatively, add --no-verify-cpu to the command line, but note that this could be dangerous.");
@@ -92,7 +93,7 @@ fn main() {
 	let mut rpio = match Rpio::new() {
 		Ok(x) => x,
 		Err(error) => {
-			eprintln!("Error: {}", error);
+			eprintln!("{}: {}", Paint::red("Error").bold(), error);
 			eprintln!();
 			eprintln!("Make sure to run the application as root on a BCM2835/7 CPU and that your kernel was configured properly.");
 			eprintln!("You may need to disable CONFIG_IO_STRICT_DEVMEM and add iomem=relaxed to the kernel command line.");
@@ -109,7 +110,7 @@ fn main() {
 		let (gpio, pud) = match config_from_commands(&options.pins, options.allow_unsafe) {
 			Ok(x) => x,
 			Err(error) => {
-				eprintln!("Error: {}", error);
+				eprintln!("{}: {}", Paint::red("Error").bold(), error);
 				std::process::exit(1);
 			}
 		};
@@ -125,8 +126,6 @@ fn main() {
 }
 
 fn print_pin(index: usize, pin: &PinInfo, verbose: bool) {
-	use yansi::Paint;
-
 	let level = match pin.level {
 		true  => Paint::green("HIGH"),
 		false => Paint::red("LOW"),
