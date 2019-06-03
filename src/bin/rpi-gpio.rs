@@ -80,6 +80,14 @@ struct Options {
 fn main() {
 	let options = Options::from_args();
 
+	let (gpio_config, pud_config) = match config_from_commands(&options.pins, options.allow_unsafe) {
+		Ok(x) => x,
+		Err(error) => {
+			eprintln!("{}: {}", Paint::red("Error").bold(), error);
+			std::process::exit(1);
+		}
+	};
+
 	if !options.no_verify_cpu {
 		if let Some(error) = check_bcm283x_gpio().err() {
 			eprintln!("{}: {}", Paint::red("Error").bold(), error);
@@ -107,16 +115,9 @@ fn main() {
 	}
 
 	if !options.pins.is_empty() {
-		let (gpio, pud) = match config_from_commands(&options.pins, options.allow_unsafe) {
-			Ok(x) => x,
-			Err(error) => {
-				eprintln!("{}: {}", Paint::red("Error").bold(), error);
-				std::process::exit(1);
-			}
-		};
-		gpio.apply(&mut rpio);
+		gpio_config.apply(&mut rpio);
 		unsafe {
-			pud.apply(&mut rpio);
+			pud_config.apply(&mut rpio);
 		}
 	}
 
