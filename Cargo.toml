@@ -13,6 +13,6 @@ license = "BSD-2-Clause"
 readme  = "README.md"
 
 [dependencies]
-nix = "0.13"
+nix = "0.14"
 structopt = "0.2"
 yansi = "0.5"
