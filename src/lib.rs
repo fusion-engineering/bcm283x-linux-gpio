@@ -207,18 +207,10 @@ fn assert_pin_index(index: usize) {
 
 fn partition(data: &[u8], split_on: u8) -> Result<(&[u8], &[u8]), ()> {
 	let mut iterator = data.splitn(2, |c| *c == split_on);
-
-	let a = match iterator.next() {
-		Some(x) => x,
-		None    => return Err(()),
-	};
-
-	let b = match iterator.next() {
-		Some(x) => x,
-		None    => return Err(()),
-	};
-
-	Ok((a, b))
+	Ok((
+		iterator.next().ok_or(())?,
+		iterator.next().ok_or(())?,
+	))
 }
 
 fn is_whitespace(c: u8) -> bool {
