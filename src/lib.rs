@@ -151,7 +151,7 @@ impl Gpio {
 		std::ptr::write_volatile(self.register_address_mut(reg), value)
 	}
 
-	/// Perform an atomaic bitwise AND on the contents of a register.
+	/// Perform an atomic bitwise AND on the contents of a register.
 	pub unsafe fn and_register(&mut self, reg: Register, value: u32) {
 		*self.register_address_mut(reg) &= value;
 	}
