@@ -269,7 +269,7 @@ pub fn check_bcm283x_gpio() -> Result<(), Error> {
 
 	let file = open("/proc/device-tree/soc/gpio@7e200000/compatible")?;
 	let mut data = read_all(file)?;
-	if data[data.len() - 1] == 0 {
+	if data.last() == Some(&0) {
 		data.pop();
 	}
 
