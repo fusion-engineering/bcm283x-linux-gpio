@@ -138,17 +138,17 @@ impl Gpio {
 	/// Read the entire current GPIO state.
 	pub fn read_all(&self) -> GpioState {
 		let address = self.control_block as *const [u32; 0x100];
-		GpioState::from_data(unsafe { std::ptr::read_volatile(address) })
+		GpioState::from_data(unsafe { address.read_volatile() })
 	}
 
 	/// Read a value from a register.
 	pub fn read_register(&self, reg: Register) -> u32 {
-		unsafe { std::ptr::read_volatile(self.register_address(reg)) }
+		unsafe { self.register_address(reg).read_volatile() }
 	}
 
 	/// Write a value to a register.
 	pub unsafe fn write_register(&mut self, reg: Register, value: u32) {
-		std::ptr::write_volatile(self.register_address_mut(reg), value)
+		self.register_address_mut(reg).write_volatile(value)
 	}
 
 	/// Perform an atomic bitwise AND on the contents of a register.
