@@ -292,7 +292,7 @@ fn read_gpio_address() -> Result<i64, Error> {
 		let range = trim(range);
 		let peripheral = trim(peripheral);
 
-		if peripheral.ends_with(b".gpio") {
+		if peripheral.ends_with(b".gpio") || peripheral.ends_with(b".gpio gpio@7e200000") {
 			let (start, _end) = partition(range, b'-').map_err(|_| Error::new(format!("malformed entry in /proc/iomem on line {}", i), None))?;
 			let start = std::str::from_utf8(start).map_err(|_| Error::new(format!("malformed entry in /proc/iomem on line {}", i), None))?;
 			let start = i64::from_str_radix(start, 16).map_err(|_| Error::new(format!("invalid start address in /proc/iomem on line {}: {}", i, start), None))?;
